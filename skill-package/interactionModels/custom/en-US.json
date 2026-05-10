@@ -24,18 +24,12 @@
             {
               "name": "points",
               "type": "AMAZON.NUMBER"
-            },
-            {
-              "name": "reason",
-              "type": "AMAZON.SearchQuery"
             }
           ],
           "samples": [
             "give {kidName} {points} points",
-            "give {kidName} {points} points for {reason}",
             "add {points} points to {kidName}",
-            "award {kidName} {points} points",
-            "award {kidName} {points} points for {reason}"
+            "award {kidName} {points} points"
           ]
         },
         {

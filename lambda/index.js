@@ -632,7 +632,6 @@ const GiveBonusPointsIntentHandler = {
         const { attributes, household } = await loadHousehold(handlerInput);
         const kidName = getSlotValue(handlerInput, 'kidName');
         const pointsValue = getSlotValue(handlerInput, 'points');
-        const reason = getSlotValue(handlerInput, 'reason') || 'bonus points';
         const child = findChildByName(household, kidName) || getSelectedChild(household);
         const points = Math.max(Number(pointsValue) || 0, 0);
 
@@ -643,7 +642,7 @@ const GiveBonusPointsIntentHandler = {
                 .getResponse();
         }
 
-        awardBonus(household, child.childId, points, reason);
+        awardBonus(household, child.childId, points, 'bonus points');
         await saveAndPush(handlerInput, attributes, household);
 
         return handlerInput.responseBuilder
