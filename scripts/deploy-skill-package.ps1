@@ -4,15 +4,16 @@ Deploys the full Alexa skill package, including the widget Data Store package.
 
 .DESCRIPTION
 Use this script when changes under skill-package/ need to be pushed to the
-Alexa development stage. Passing -SkillId uses ASK CLI SMAPI import, which is
-safe for an existing Developer Console skill and does not rely on local .ask
-project state.
+Alexa development stage. For Alexa-hosted skills, the default path pushes a
+temporary clone of the hosted CodeCommit repository to the hosted master branch.
+That matches the Alexa-hosted deployment model and avoids overwriting the hosted
+endpoint with a raw SMAPI skill package import.
 
 Examples:
   .\scripts\deploy-skill-package.ps1 -SkillId amzn1.ask.skill.xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
   .\scripts\deploy-skill-package.ps1 -SkillId amzn1.ask.skill.xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx -Profile default
   .\scripts\deploy-skill-package.ps1 -ValidateOnly
-  .\scripts\deploy-skill-package.ps1 -Method Deploy
+    .\scripts\deploy-skill-package.ps1 -SkillId amzn1.ask.skill.xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx -Method HostedGit
 #>
 
 [CmdletBinding()]
@@ -21,8 +22,12 @@ param(
 
     [string]$Profile = 'default',
 
-    [ValidateSet('Auto', 'Import', 'Deploy')]
+    [ValidateSet('Auto', 'HostedGit', 'Import', 'Deploy')]
     [string]$Method = 'Auto',
+
+    [string]$HostedDeployPath,
+
+    [switch]$AllowHostedImport,
 
     [switch]$NoIgnoreHash,
 
@@ -171,6 +176,186 @@ function Assert-AskCliInstalled {
     }
 
     Write-Detail "ASK CLI: $($ask.Source)"
+}
+
+function Assert-GitInstalled {
+    $git = Get-Command git -ErrorAction SilentlyContinue
+
+    if ($null -eq $git) {
+        throw 'Git was not found. Install Git for Windows, then run this script again.'
+    }
+
+    Write-Detail "Git: $($git.Source)"
+}
+
+function Invoke-Git {
+    param(
+        [string[]]$Arguments,
+        [string]$WorkingDirectory = $projectRoot,
+        [string[]]$Config = @()
+    )
+
+    $previousErrorActionPreference = $ErrorActionPreference
+    $previousNodeNoWarnings = $env:NODE_NO_WARNINGS
+
+    try {
+        $ErrorActionPreference = 'Continue'
+        $env:NODE_NO_WARNINGS = '1'
+
+        $gitArguments = @()
+        foreach ($item in $Config) {
+            $gitArguments += '-c'
+            $gitArguments += $item
+        }
+        $gitArguments += @('-C', $WorkingDirectory)
+        $gitArguments += $Arguments
+
+        $output = & git @gitArguments 2>&1
+        $exitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+
+        if ($null -eq $previousNodeNoWarnings) {
+            Remove-Item Env:\NODE_NO_WARNINGS -ErrorAction SilentlyContinue
+        }
+        else {
+            $env:NODE_NO_WARNINGS = $previousNodeNoWarnings
+        }
+    }
+
+    $text = (($output | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine).Trim()
+
+    if ($exitCode -ne 0) {
+        throw "Git failed with exit code $exitCode.`n$text"
+    }
+
+    return $text
+}
+
+function Invoke-HostedGit {
+    param(
+        [string[]]$Arguments,
+        [string]$WorkingDirectory,
+        [string]$Profile
+    )
+
+    return Invoke-Git `
+        -Arguments $Arguments `
+        -WorkingDirectory $WorkingDirectory `
+        -Config @(
+            'credential.helper='
+        )
+}
+
+function Get-HostedRepositoryUrl {
+    param(
+        [string]$SkillId,
+        [string]$Profile,
+        [switch]$Quiet
+    )
+
+    if ([string]::IsNullOrWhiteSpace($SkillId)) {
+        return $null
+    }
+
+    try {
+        $metadataOutput = Invoke-AskCli -Arguments @(
+            'smapi', 'get-alexa-hosted-skill-metadata',
+            '--skill-id', $SkillId,
+            '--profile', $Profile
+        )
+    }
+    catch {
+        if ($Quiet) {
+            return $null
+        }
+
+        throw
+    }
+
+    $metadata = Convert-JsonText -Text $metadataOutput
+    $repositoryUrl = Get-FirstMatchingValue -Json $metadata -Paths @(
+        'alexaHosted.repository.url',
+        'body.alexaHosted.repository.url',
+        'repository.url'
+    )
+
+    if ([string]::IsNullOrWhiteSpace($repositoryUrl)) {
+        if ($Quiet) {
+            return $null
+        }
+
+        throw "Alexa-hosted metadata did not include a Git repository URL.`n$metadataOutput"
+    }
+
+    return $repositoryUrl
+}
+
+function Get-HostedRepositoryCredentials {
+    param(
+        [string]$SkillId,
+        [string]$Profile,
+        [string]$RepositoryUrl
+    )
+
+    $credentialsOutput = Invoke-AskCli -Arguments @(
+        'smapi', 'generate-credentials-for-alexa-hosted-skill',
+        '--skill-id', $SkillId,
+        '--repository-url', $RepositoryUrl,
+        '--repository-type', 'GIT',
+        '--profile', $Profile
+    )
+
+    $credentialsJson = Convert-JsonText -Text $credentialsOutput
+    $username = Get-FirstMatchingValue -Json $credentialsJson -Paths @(
+        'repositoryCredentials.username',
+        'body.repositoryCredentials.username'
+    )
+    $password = Get-FirstMatchingValue -Json $credentialsJson -Paths @(
+        'repositoryCredentials.password',
+        'body.repositoryCredentials.password'
+    )
+
+    if ([string]::IsNullOrWhiteSpace($username) -or [string]::IsNullOrWhiteSpace($password)) {
+        throw "Could not read temporary hosted Git credentials from ASK CLI response."
+    }
+
+    return [pscustomobject]@{
+        Username = $username
+        Password = $password
+    }
+}
+
+function Initialize-HostedGitAskPass {
+    param([string]$Directory)
+
+    if (-not (Test-Path -LiteralPath $Directory -PathType Container)) {
+        [void](New-Item -Path $Directory -ItemType Directory -Force)
+    }
+
+    $askPassScriptPath = Join-Path $Directory 'alexa-hosted-git-askpass.ps1'
+    $askPassCommandPath = Join-Path $Directory 'alexa-hosted-git-askpass.cmd'
+
+    $askPassScript = @'
+$promptText = $args -join ' '
+if ($promptText -match 'Username') {
+    [Console]::Out.Write($env:ALEXA_HOSTED_GIT_USERNAME)
+}
+else {
+    [Console]::Out.Write($env:ALEXA_HOSTED_GIT_PASSWORD)
+}
+'@
+
+    $askPassCommand = @'
+@echo off
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0alexa-hosted-git-askpass.ps1" %*
+'@
+
+    Set-Content -LiteralPath $askPassScriptPath -Value $askPassScript -Encoding ASCII
+    Set-Content -LiteralPath $askPassCommandPath -Value $askPassCommand -Encoding ASCII
+
+    return $askPassCommandPath
 }
 
 function Test-SkillPackage {
@@ -412,6 +597,7 @@ function Import-SkillPackageWithSmapi {
         [string]$SkillId,
         [string]$Profile,
         [string]$ZipPath,
+        [switch]$AllowHostedImport,
         [switch]$SkipPolling,
         [int]$PollSeconds,
         [int]$PollIntervalSeconds
@@ -419,6 +605,11 @@ function Import-SkillPackageWithSmapi {
 
     if ([string]::IsNullOrWhiteSpace($SkillId)) {
         throw 'SkillId is required for SMAPI import. Pass -SkillId amzn1.ask.skill....'
+    }
+
+    $hostedRepositoryUrl = Get-HostedRepositoryUrl -SkillId $SkillId -Profile $Profile -Quiet
+    if (-not [string]::IsNullOrWhiteSpace($hostedRepositoryUrl) -and -not $AllowHostedImport) {
+        throw "This is an Alexa-hosted skill. Raw SMAPI skill-package import can unset the hosted endpoint, which causes the Developer Console warning you saw. Use -Method HostedGit instead, or pass -AllowHostedImport only if you intentionally want a raw import."
     }
 
     Write-Step 'Creating ASK upload URL'
@@ -530,9 +721,114 @@ function Deploy-SkillPackageWithAskProject {
     [void](Invoke-AskCli -Arguments $deployArgs)
 }
 
+function Copy-DirectoryClean {
+    param(
+        [string]$Source,
+        [string]$Destination
+    )
+
+    if (Test-Path -LiteralPath $Destination) {
+        Remove-Item -LiteralPath $Destination -Recurse -Force
+    }
+
+    [void](New-Item -Path $Destination -ItemType Directory -Force)
+    Copy-Item -Path (Join-Path $Source '*') -Destination $Destination -Recurse -Force
+}
+
+function Deploy-AlexaHostedSkillWithGit {
+    param(
+        [string]$ProjectRoot,
+        [string]$SkillPackagePath,
+        [string]$SkillId,
+        [string]$Profile,
+        [string]$DeployPath
+    )
+
+    if ([string]::IsNullOrWhiteSpace($SkillId)) {
+        throw 'SkillId is required for Alexa-hosted Git deployment. Pass -SkillId amzn1.ask.skill....'
+    }
+
+    Assert-GitInstalled
+
+    Write-Step 'Finding Alexa-hosted Git repository'
+    $repositoryUrl = Get-HostedRepositoryUrl -SkillId $SkillId -Profile $Profile
+    Write-Detail $repositoryUrl
+
+    $deployParent = Split-Path -Parent $DeployPath
+    if (-not (Test-Path -LiteralPath $deployParent -PathType Container)) {
+        [void](New-Item -Path $deployParent -ItemType Directory -Force)
+    }
+
+    Write-Step 'Generating temporary hosted Git credentials'
+    $credentials = Get-HostedRepositoryCredentials -SkillId $SkillId -Profile $Profile -RepositoryUrl $repositoryUrl
+    $askPassCommandPath = Initialize-HostedGitAskPass -Directory $deployParent
+
+    $previousGitAskPass = $env:GIT_ASKPASS
+    $previousGitTerminalPrompt = $env:GIT_TERMINAL_PROMPT
+    $previousHostedGitUsername = $env:ALEXA_HOSTED_GIT_USERNAME
+    $previousHostedGitPassword = $env:ALEXA_HOSTED_GIT_PASSWORD
+
+    try {
+        $env:GIT_ASKPASS = $askPassCommandPath
+        $env:GIT_TERMINAL_PROMPT = '0'
+        $env:ALEXA_HOSTED_GIT_USERNAME = $credentials.Username
+        $env:ALEXA_HOSTED_GIT_PASSWORD = $credentials.Password
+
+        if (Test-Path -LiteralPath (Join-Path $DeployPath '.git') -PathType Container) {
+            Write-Step 'Refreshing temporary Alexa-hosted repository clone'
+            Invoke-HostedGit -Arguments @('remote', 'set-url', 'origin', $repositoryUrl) -WorkingDirectory $DeployPath -Profile $Profile | Out-Null
+            Invoke-HostedGit -Arguments @('fetch', 'origin', 'master') -WorkingDirectory $DeployPath -Profile $Profile | Out-Null
+            Invoke-HostedGit -Arguments @('checkout', '-B', 'master', 'origin/master') -WorkingDirectory $DeployPath -Profile $Profile | Out-Null
+            Invoke-HostedGit -Arguments @('reset', '--hard', 'origin/master') -WorkingDirectory $DeployPath -Profile $Profile | Out-Null
+        }
+        else {
+            if (Test-Path -LiteralPath $DeployPath) {
+                Remove-Item -LiteralPath $DeployPath -Recurse -Force
+            }
+
+            Write-Step 'Cloning temporary Alexa-hosted repository'
+            Invoke-HostedGit -Arguments @('clone', $repositoryUrl, $DeployPath) -WorkingDirectory $ProjectRoot -Profile $Profile | Out-Null
+            Invoke-HostedGit -Arguments @('fetch', 'origin', 'master') -WorkingDirectory $DeployPath -Profile $Profile | Out-Null
+            Invoke-HostedGit -Arguments @('checkout', '-B', 'master', 'origin/master') -WorkingDirectory $DeployPath -Profile $Profile | Out-Null
+        }
+
+        Invoke-HostedGit -Arguments @('config', 'user.name', 'Alexa Hosted Deploy') -WorkingDirectory $DeployPath -Profile $Profile | Out-Null
+        Invoke-HostedGit -Arguments @('config', 'user.email', 'alexa-hosted-deploy@example.local') -WorkingDirectory $DeployPath -Profile $Profile | Out-Null
+
+        Write-Step 'Copying local skill files into hosted repository clone'
+        Copy-DirectoryClean -Source (Join-Path $ProjectRoot 'lambda') -Destination (Join-Path $DeployPath 'lambda')
+        Copy-DirectoryClean -Source $SkillPackagePath -Destination (Join-Path $DeployPath 'skill-package')
+        Copy-Item -LiteralPath (Join-Path $ProjectRoot 'ask-resources.json') -Destination (Join-Path $DeployPath 'ask-resources.json') -Force
+
+        $status = Invoke-HostedGit -Arguments @('status', '--porcelain') -WorkingDirectory $DeployPath -Profile $Profile
+
+        if ([string]::IsNullOrWhiteSpace($status)) {
+            Write-Detail 'No hosted repository changes to commit.'
+            return
+        }
+
+        Write-Step 'Committing hosted deployment changes'
+        Invoke-HostedGit -Arguments @('add', 'ask-resources.json', 'lambda', 'skill-package') -WorkingDirectory $DeployPath -Profile $Profile | Out-Null
+        Invoke-HostedGit -Arguments @('commit', '-m', 'Deploy local Alexa hosted skill') -WorkingDirectory $DeployPath -Profile $Profile | Out-Null
+
+        Write-Step 'Pushing to Alexa-hosted master branch'
+        Invoke-HostedGit -Arguments @('push', 'origin', 'master') -WorkingDirectory $DeployPath -Profile $Profile | Out-Null
+    }
+    finally {
+        if ($null -eq $previousGitAskPass) { Remove-Item Env:\GIT_ASKPASS -ErrorAction SilentlyContinue } else { $env:GIT_ASKPASS = $previousGitAskPass }
+        if ($null -eq $previousGitTerminalPrompt) { Remove-Item Env:\GIT_TERMINAL_PROMPT -ErrorAction SilentlyContinue } else { $env:GIT_TERMINAL_PROMPT = $previousGitTerminalPrompt }
+        if ($null -eq $previousHostedGitUsername) { Remove-Item Env:\ALEXA_HOSTED_GIT_USERNAME -ErrorAction SilentlyContinue } else { $env:ALEXA_HOSTED_GIT_USERNAME = $previousHostedGitUsername }
+        if ($null -eq $previousHostedGitPassword) { Remove-Item Env:\ALEXA_HOSTED_GIT_PASSWORD -ErrorAction SilentlyContinue } else { $env:ALEXA_HOSTED_GIT_PASSWORD = $previousHostedGitPassword }
+    }
+}
+
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $skillPackagePath = Join-Path $projectRoot 'skill-package'
 $zipPath = Join-Path $projectRoot 'dist/skill-package-import.zip'
+
+if ([string]::IsNullOrWhiteSpace($HostedDeployPath)) {
+    $HostedDeployPath = Join-Path $projectRoot 'dist/alexa-hosted-deploy'
+}
 
 Push-Location $projectRoot
 try {
@@ -557,7 +853,7 @@ try {
             $resolvedMethod = 'Deploy'
         }
         else {
-            $resolvedMethod = 'Import'
+            $resolvedMethod = 'HostedGit'
         }
     }
 
@@ -566,9 +862,18 @@ try {
             -SkillId $SkillId `
             -Profile $Profile `
             -ZipPath $createdZipPath `
+            -AllowHostedImport:$AllowHostedImport `
             -SkipPolling:$SkipPolling `
             -PollSeconds $PollSeconds `
             -PollIntervalSeconds $PollIntervalSeconds
+    }
+    elseif ($resolvedMethod -eq 'HostedGit') {
+        Deploy-AlexaHostedSkillWithGit `
+            -ProjectRoot $projectRoot `
+            -SkillPackagePath $skillPackagePath `
+            -SkillId $SkillId `
+            -Profile $Profile `
+            -DeployPath $HostedDeployPath
     }
     else {
         Deploy-SkillPackageWithAskProject -ProjectRoot $projectRoot -Profile $Profile -NoIgnoreHash:$NoIgnoreHash

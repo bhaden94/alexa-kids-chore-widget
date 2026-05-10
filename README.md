@@ -39,7 +39,7 @@ Prototype Alexa skill and widget for a multi-child chore chart with points and r
 ## Deployment scripts
 
 - To upload Lambda code only in the Alexa Developer Console **Code > Import Code** flow, run `scripts/build-lambda-zip.ps1` and upload `dist/lambda-import.zip`.
-- To push the full ASK skill package, including the widget package under `skill-package/dataStorePackages/`, install/configure ASK CLI and run:
+- For this Alexa-hosted skill, push the full project through the hosted Git repository. This deploys `lambda/`, `skill-package/`, and the widget package without changing the hosted endpoint setting:
 
    ```powershell
    npm install -g ask-cli
@@ -47,7 +47,9 @@ Prototype Alexa skill and widget for a multi-child chore chart with points and r
    .\scripts\deploy-skill-package.ps1 -SkillId amzn1.ask.skill.YOUR-SKILL-ID -Profile default
    ```
 
-The full package deployment is the one that makes the widget appear under **Build > Multimodal Responses > Widget**.
+The script uses the Alexa-hosted CodeCommit `master` branch by default when `-SkillId` points to a hosted skill. It keeps a temporary clone under `dist/alexa-hosted-deploy/`, commits the local `lambda/`, `skill-package/`, and `ask-resources.json`, then pushes to hosted `master`.
+
+Do not use raw SMAPI skill-package import for this hosted skill unless you explicitly mean to replace the hosted endpoint configuration. Raw import can cause the Developer Console warning that the default endpoint changed.
 
 ## Notes
 
