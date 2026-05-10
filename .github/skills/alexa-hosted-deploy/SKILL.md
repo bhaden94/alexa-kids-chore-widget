@@ -44,7 +44,7 @@ Run commands from the repository root:
 5. Return to development branch:
    - `git checkout main`
 6. If ASK CLI is configured, verify status:
-   - `ask smapi get-skill-status --skill-id amzn1.ask.skill.0018dcbe-a1c5-4680-8dca-a51eecd906eb --profile default`
+   - `ask smapi get-skill-status --skill-id amzn1.ask.skill.ba2c7f7a-a96d-4ad2-bb3f-a2e5c7092375 --profile default`
 
 ## If Merge Conflicts Occur
 

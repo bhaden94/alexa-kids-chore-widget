@@ -10,7 +10,7 @@ Use this skill when changing skill metadata, the interaction model, Lambda code,
 
 ## Project Facts
 
-- Skill ID: `amzn1.ask.skill.0018dcbe-a1c5-4680-8dca-a51eecd906eb`
+- Skill ID: `amzn1.ask.skill.ba2c7f7a-a96d-4ad2-bb3f-a2e5c7092375`
 - Lambda code: `lambda/`
 - Skill package: `skill-package/`
 - Interaction model: `skill-package/interactionModels/custom/en-US.json`
