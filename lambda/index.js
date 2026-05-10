@@ -450,7 +450,10 @@ async function pushWidgetData(handlerInput, household) {
 
     const token = await getAccessToken();
     if (!token) {
-        return;
+        return {
+            updated: false,
+            reason: 'missingCredentials'
+        };
     }
 
     const commands = [
@@ -467,7 +470,19 @@ async function pushWidgetData(handlerInput, household) {
         id: handlerInput.requestEnvelope.context.System.user.userId
     };
 
-    await updateDatastore(token, commands, target);
+    try {
+        await updateDatastore(token, commands, target);
+        return {
+            updated: true
+        };
+    }
+    catch (error) {
+        console.log(`Data Store update failed: ${error.stack || JSON.stringify(error)}`);
+        return {
+            updated: false,
+            reason: 'updateFailed'
+        };
+    }
 }
 
 async function saveAndPush(handlerInput, attributes, household) {
@@ -475,7 +490,44 @@ async function saveAndPush(handlerInput, attributes, household) {
     attributes.household = household;
     attributesManager.setPersistentAttributes(attributes);
     await attributesManager.savePersistentAttributes();
-    await pushWidgetData(handlerInput, household);
+    return pushWidgetData(handlerInput, household);
+}
+
+function buildInlineStatusText(household, pushResult) {
+    if (pushResult && pushResult.updated) {
+        return household.lastMessage || 'Widget updated.';
+    }
+
+    if (pushResult && pushResult.reason === 'missingCredentials') {
+        return `${household.lastMessage || 'Widget action received.'} Set Data Store credentials to sync.`;
+    }
+
+    if (pushResult && pushResult.reason === 'updateFailed') {
+        return `${household.lastMessage || 'Widget action received.'} Sync failed; check logs.`;
+    }
+
+    return household.lastMessage || 'Widget action received.';
+}
+
+function addInlineWidgetStatusDirective(handlerInput, responseBuilder, household, pushResult) {
+    const presentationUri = handlerInput.requestEnvelope.request.presentationUri;
+
+    if (!presentationUri) {
+        return responseBuilder;
+    }
+
+    return responseBuilder.addDirective({
+        type: 'Alexa.Presentation.APL.ExecuteCommands',
+        presentationUri,
+        commands: [
+            {
+                type: 'SetValue',
+                componentId: 'statusMessage',
+                property: 'text',
+                value: buildInlineStatusText(household, pushResult)
+            }
+        ]
+    });
 }
 
 async function loadHousehold(handlerInput) {
@@ -575,10 +627,12 @@ const APLEventHandler = {
             }
         }
 
-        await saveAndPush(handlerInput, attributes, household);
-        return handlerInput.responseBuilder
-            .withShouldEndSession(true)
-            .getResponse();
+        const pushResult = await saveAndPush(handlerInput, attributes, household);
+        const responseBuilder = handlerInput.responseBuilder
+            .withShouldEndSession(true);
+
+        addInlineWidgetStatusDirective(handlerInput, responseBuilder, household, pushResult);
+        return responseBuilder.getResponse();
     }
 };
 

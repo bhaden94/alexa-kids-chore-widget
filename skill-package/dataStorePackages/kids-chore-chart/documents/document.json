@@ -77,6 +77,8 @@
           "items": [
             {
               "type": "TouchWrapper",
+              "id": "openSkillAction",
+              "accessibilityLabel": "Open Kids Chore Chart skill",
               "onPress": [
                 {
                   "type": "SendEvent",
@@ -148,6 +150,8 @@
               "items": [
                 {
                   "type": "TouchWrapper",
+                  "id": "completeFirstChoreAction",
+                  "accessibilityLabel": "Complete ${firstChore.title}",
                   "display": "${firstChore.title ? 'normal' : 'none'}",
                   "onPress": [
                     {
@@ -220,6 +224,8 @@
                 },
                 {
                   "type": "TouchWrapper",
+                  "id": "completeSecondChoreAction",
+                  "accessibilityLabel": "Complete ${secondChore.title}",
                   "display": "${secondChore.title ? 'normal' : 'none'}",
                   "onPress": [
                     {
@@ -292,6 +298,8 @@
                 },
                 {
                   "type": "TouchWrapper",
+                  "id": "completeThirdChoreAction",
+                  "accessibilityLabel": "Complete ${thirdChore.title}",
                   "display": "${thirdChore.title ? 'normal' : 'none'}",
                   "onPress": [
                     {
@@ -364,6 +372,8 @@
                 },
                 {
                   "type": "TouchWrapper",
+                  "id": "completeFourthChoreAction",
+                  "accessibilityLabel": "Complete ${fourthChore.title}",
                   "display": "${fourthChore.title && viewport.height > 460 ? 'normal' : 'none'}",
                   "onPress": [
                     {
@@ -438,6 +448,7 @@
             },
             {
               "type": "Text",
+              "id": "statusMessage",
               "text": "${chartData.lastMessage}",
               "style": "textStyleCaption",
               "color": "#BFD7FF",
@@ -450,6 +461,8 @@
               "items": [
                 {
                   "type": "TouchWrapper",
+                  "id": "selectNextChildAction",
+                  "accessibilityLabel": "Show next kid",
                   "grow": 1,
                   "onPress": [
                     {
@@ -465,6 +478,7 @@
                   "item": {
                     "type": "Frame",
                     "height": "42dp",
+                    "width": "100%",
                     "borderRadius": "12dp",
                     "backgroundColor": "#394B78",
                     "item": {
@@ -482,6 +496,8 @@
                 },
                 {
                   "type": "TouchWrapper",
+                  "id": "awardBonusAction",
+                  "accessibilityLabel": "Award one bonus point to ${selectedChild.name}",
                   "grow": 1,
                   "onPress": [
                     {
@@ -500,6 +516,7 @@
                   "item": {
                     "type": "Frame",
                     "height": "42dp",
+                    "width": "100%",
                     "borderRadius": "12dp",
                     "backgroundColor": "#5E4B00",
                     "item": {
