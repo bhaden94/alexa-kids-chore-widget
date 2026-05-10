@@ -36,6 +36,19 @@ Prototype Alexa skill and widget for a multi-child chore chart with points and r
    - `Bonus +1`
    - tapping an incomplete chore row
 
+## Deployment scripts
+
+- To upload Lambda code only in the Alexa Developer Console **Code > Import Code** flow, run `scripts/build-lambda-zip.ps1` and upload `dist/lambda-import.zip`.
+- To push the full ASK skill package, including the widget package under `skill-package/dataStorePackages/`, install/configure ASK CLI and run:
+
+   ```powershell
+   npm install -g ask-cli
+   ask configure --profile default
+   .\scripts\deploy-skill-package.ps1 -SkillId amzn1.ask.skill.YOUR-SKILL-ID -Profile default
+   ```
+
+The full package deployment is the one that makes the widget appear under **Build > Multimodal Responses > Widget**.
+
 ## Notes
 
 The prototype uses `WIDGET_M`, because Alexa public widget docs currently describe medium widgets as the supported widget viewport. Larger/detail experiences should be handled with responsive/full-screen APL until additional widget targets are available.
