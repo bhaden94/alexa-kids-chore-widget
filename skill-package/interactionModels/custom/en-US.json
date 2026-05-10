@@ -1,0 +1,61 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "kids chore chart",
+      "intents": [
+        {
+          "name": "ChoreStatusIntent",
+          "slots": [],
+          "samples": [
+            "how many points do we have",
+            "what are the chores",
+            "what chores are left",
+            "show chore status",
+            "check chores"
+          ]
+        },
+        {
+          "name": "GiveBonusPointsIntent",
+          "slots": [
+            {
+              "name": "kidName",
+              "type": "AMAZON.FirstName"
+            },
+            {
+              "name": "points",
+              "type": "AMAZON.NUMBER"
+            },
+            {
+              "name": "reason",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "give {kidName} {points} points",
+            "give {kidName} {points} points for {reason}",
+            "add {points} points to {kidName}",
+            "award {kidName} {points} points",
+            "award {kidName} {points} points for {reason}"
+          ]
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.FallbackIntent",
+          "samples": []
+        }
+      ],
+      "types": []
+    }
+  }
+}

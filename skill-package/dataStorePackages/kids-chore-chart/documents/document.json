@@ -1,0 +1,525 @@
+{
+  "type": "APL",
+  "version": "2023.1",
+  "theme": "dark",
+  "import": [
+    {
+      "name": "alexa-layouts",
+      "version": "1.6.0"
+    }
+  ],
+  "extensions": [
+    {
+      "name": "DataStore",
+      "uri": "alexaext:datastore:10"
+    }
+  ],
+  "settings": {
+    "DataStore": {
+      "dataBindings": [
+        {
+          "namespace": "kidsChoreChart",
+          "key": "widgetData",
+          "dataBindingName": "widgetData",
+          "dataType": "OBJECT"
+        }
+      ]
+    }
+  },
+  "mainTemplate": {
+    "parameters": [
+      "defaultData"
+    ],
+    "bind": [
+      {
+        "name": "currentDate",
+        "value": "${Time.format('YYYY-MM-DD', localTime)}"
+      },
+      {
+        "name": "chartData",
+        "value": "${widgetData || defaultData}"
+      },
+      {
+        "name": "selectedChild",
+        "value": "${chartData.selectedChild}"
+      },
+      {
+        "name": "firstChore",
+        "value": "${selectedChild.chores[0]}"
+      },
+      {
+        "name": "secondChore",
+        "value": "${selectedChild.chores[1]}"
+      },
+      {
+        "name": "thirdChore",
+        "value": "${selectedChild.chores[2]}"
+      },
+      {
+        "name": "fourthChore",
+        "value": "${selectedChild.chores[3]}"
+      }
+    ],
+    "items": [
+      {
+        "type": "Frame",
+        "width": "100vw",
+        "height": "100vh",
+        "backgroundColor": "#101A33",
+        "item": {
+          "type": "Container",
+          "width": "100%",
+          "height": "100%",
+          "paddingLeft": "18dp",
+          "paddingRight": "18dp",
+          "paddingTop": "14dp",
+          "paddingBottom": "14dp",
+          "items": [
+            {
+              "type": "TouchWrapper",
+              "onPress": [
+                {
+                  "type": "SendEvent",
+                  "arguments": [
+                    "openSkill"
+                  ],
+                  "flags": {
+                    "interactionMode": "STANDARD"
+                  }
+                }
+              ],
+              "item": {
+                "type": "Container",
+                "direction": "row",
+                "alignItems": "center",
+                "items": [
+                  {
+                    "type": "Text",
+                    "text": "${selectedChild.emoji}",
+                    "fontSize": "38dp",
+                    "width": "48dp"
+                  },
+                  {
+                    "type": "Container",
+                    "grow": 1,
+                    "items": [
+                      {
+                        "type": "Text",
+                        "text": "${selectedChild.name}'s Chores",
+                        "style": "textStyleBody",
+                        "fontWeight": "700",
+                        "color": "white",
+                        "maxLines": 1
+                      },
+                      {
+                        "type": "Text",
+                        "text": "${selectedChild.completedChores}/${selectedChild.totalChores} done today",
+                        "style": "textStyleCaption",
+                        "color": "#BFD7FF",
+                        "maxLines": 1
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Text",
+                    "text": "${selectedChild.currentPoints} pts",
+                    "style": "textStyleBody",
+                    "fontWeight": "700",
+                    "color": "#FFE082",
+                    "textAlign": "right",
+                    "width": "86dp",
+                    "maxLines": 1
+                  }
+                ]
+              }
+            },
+            {
+              "type": "Text",
+              "spacing": "6dp",
+              "text": "Next reward: ${selectedChild.nextReward.title} (${selectedChild.nextReward.pointsToGo} to go)",
+              "style": "textStyleCaption",
+              "color": "#C8D8FF",
+              "maxLines": 1
+            },
+            {
+              "type": "Container",
+              "spacing": "10dp",
+              "grow": 1,
+              "items": [
+                {
+                  "type": "TouchWrapper",
+                  "display": "${firstChore.title ? 'normal' : 'none'}",
+                  "onPress": [
+                    {
+                      "type": "SendEvent",
+                      "when": "${!firstChore.completed}",
+                      "arguments": [
+                        "completeChore",
+                        "${selectedChild.childId}",
+                        "${firstChore.choreId}",
+                        "${chartData.today || currentDate}"
+                      ],
+                      "flags": {
+                        "interactionMode": "INLINE"
+                      }
+                    }
+                  ],
+                  "item": {
+                    "type": "Frame",
+                    "height": "50dp",
+                    "width": "100%",
+                    "borderRadius": "12dp",
+                    "backgroundColor": "${firstChore.completed ? '#1B5E20' : firstChore.overdue ? '#7F2A2A' : '#24395F'}",
+                    "item": {
+                      "type": "Container",
+                      "direction": "row",
+                      "alignItems": "center",
+                      "paddingLeft": "12dp",
+                      "paddingRight": "12dp",
+                      "items": [
+                        {
+                          "type": "Text",
+                          "text": "${firstChore.completed ? '✅' : firstChore.emoji}",
+                          "fontSize": "24dp",
+                          "width": "34dp"
+                        },
+                        {
+                          "type": "Container",
+                          "grow": 1,
+                          "items": [
+                            {
+                              "type": "Text",
+                              "text": "${firstChore.title}",
+                              "style": "textStyleCaption",
+                              "fontWeight": "700",
+                              "color": "white",
+                              "maxLines": 1
+                            },
+                            {
+                              "type": "Text",
+                              "text": "${firstChore.dueLabel}",
+                              "style": "textStyleCaption",
+                              "fontSize": "13dp",
+                              "color": "#C8D8FF",
+                              "maxLines": 1
+                            }
+                          ]
+                        },
+                        {
+                          "type": "Text",
+                          "text": "+${firstChore.pointValue}",
+                          "style": "textStyleCaption",
+                          "fontWeight": "700",
+                          "color": "#FFE082",
+                          "textAlign": "right",
+                          "width": "44dp"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "type": "TouchWrapper",
+                  "display": "${secondChore.title ? 'normal' : 'none'}",
+                  "onPress": [
+                    {
+                      "type": "SendEvent",
+                      "when": "${!secondChore.completed}",
+                      "arguments": [
+                        "completeChore",
+                        "${selectedChild.childId}",
+                        "${secondChore.choreId}",
+                        "${chartData.today || currentDate}"
+                      ],
+                      "flags": {
+                        "interactionMode": "INLINE"
+                      }
+                    }
+                  ],
+                  "item": {
+                    "type": "Frame",
+                    "height": "50dp",
+                    "width": "100%",
+                    "borderRadius": "12dp",
+                    "backgroundColor": "${secondChore.completed ? '#1B5E20' : secondChore.overdue ? '#7F2A2A' : '#24395F'}",
+                    "item": {
+                      "type": "Container",
+                      "direction": "row",
+                      "alignItems": "center",
+                      "paddingLeft": "12dp",
+                      "paddingRight": "12dp",
+                      "items": [
+                        {
+                          "type": "Text",
+                          "text": "${secondChore.completed ? '✅' : secondChore.emoji}",
+                          "fontSize": "24dp",
+                          "width": "34dp"
+                        },
+                        {
+                          "type": "Container",
+                          "grow": 1,
+                          "items": [
+                            {
+                              "type": "Text",
+                              "text": "${secondChore.title}",
+                              "style": "textStyleCaption",
+                              "fontWeight": "700",
+                              "color": "white",
+                              "maxLines": 1
+                            },
+                            {
+                              "type": "Text",
+                              "text": "${secondChore.dueLabel}",
+                              "style": "textStyleCaption",
+                              "fontSize": "13dp",
+                              "color": "#C8D8FF",
+                              "maxLines": 1
+                            }
+                          ]
+                        },
+                        {
+                          "type": "Text",
+                          "text": "+${secondChore.pointValue}",
+                          "style": "textStyleCaption",
+ "fontWeight": "700",
+                          "color": "#FFE082",
+                          "textAlign": "right",
+                          "width": "44dp"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "type": "TouchWrapper",
+                  "display": "${thirdChore.title ? 'normal' : 'none'}",
+                  "onPress": [
+                    {
+                      "type": "SendEvent",
+                      "when": "${!thirdChore.completed}",
+                      "arguments": [
+                        "completeChore",
+                        "${selectedChild.childId}",
+                        "${thirdChore.choreId}",
+                        "${chartData.today || currentDate}"
+                      ],
+                      "flags": {
+                        "interactionMode": "INLINE"
+                      }
+                    }
+                  ],
+                  "item": {
+                    "type": "Frame",
+                    "height": "50dp",
+                    "width": "100%",
+                    "borderRadius": "12dp",
+                    "backgroundColor": "${thirdChore.completed ? '#1B5E20' : thirdChore.overdue ? '#7F2A2A' : '#24395F'}",
+                    "item": {
+                      "type": "Container",
+                      "direction": "row",
+                      "alignItems": "center",
+                      "paddingLeft": "12dp",
+                      "paddingRight": "12dp",
+                      "items": [
+                        {
+                          "type": "Text",
+                          "text": "${thirdChore.completed ? '✅' : thirdChore.emoji}",
+                          "fontSize": "24dp",
+                          "width": "34dp"
+                        },
+                        {
+                          "type": "Container",
+                          "grow": 1,
+                          "items": [
+                            {
+                              "type": "Text",
+                              "text": "${thirdChore.title}",
+                              "style": "textStyleCaption",
+                              "fontWeight": "700",
+                              "color": "white",
+                              "maxLines": 1
+                            },
+                            {
+                              "type": "Text",
+                              "text": "${thirdChore.dueLabel}",
+                              "style": "textStyleCaption",
+                              "fontSize": "13dp",
+                              "color": "#C8D8FF",
+                              "maxLines": 1
+                            }
+                          ]
+                        },
+                        {
+                          "type": "Text",
+                          "text": "+${thirdChore.pointValue}",
+                          "style": "textStyleCaption",
+                          "fontWeight": "700",
+                          "color": "#FFE082",
+                          "textAlign": "right",
+                          "width": "44dp"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "type": "TouchWrapper",
+                  "display": "${fourthChore.title && viewport.height > 460 ? 'normal' : 'none'}",
+                  "onPress": [
+                    {
+                      "type": "SendEvent",
+                      "when": "${!fourthChore.completed}",
+                      "arguments": [
+                        "completeChore",
+                        "${selectedChild.childId}",
+                        "${fourthChore.choreId}",
+                        "${chartData.today || currentDate}"
+                      ],
+                      "flags": {
+                        "interactionMode": "INLINE"
+                      }
+                    }
+                  ],
+                  "item": {
+                    "type": "Frame",
+                    "height": "50dp",
+                    "width": "100%",
+                    "borderRadius": "12dp",
+                    "backgroundColor": "${fourthChore.completed ? '#1B5E20' : fourthChore.overdue ? '#7F2A2A' : '#24395F'}",
+                    "item": {
+                      "type": "Container",
+                      "direction": "row",
+                      "alignItems": "center",
+                      "paddingLeft": "12dp",
+                      "paddingRight": "12dp",
+                      "items": [
+                        {
+                          "type": "Text",
+                          "text": "${fourthChore.completed ? '✅' : fourthChore.emoji}",
+                          "fontSize": "24dp",
+                          "width": "34dp"
+                        },
+                        {
+                          "type": "Container",
+                          "grow": 1,
+                          "items": [
+                            {
+                              "type": "Text",
+                              "text": "${fourthChore.title}",
+                              "style": "textStyleCaption",
+                              "fontWeight": "700",
+                              "color": "white",
+                              "maxLines": 1
+                            },
+                            {
+                              "type": "Text",
+                              "text": "${fourthChore.dueLabel}",
+                              "style": "textStyleCaption",
+                              "fontSize": "13dp",
+                              "color": "#C8D8FF",
+                              "maxLines": 1
+                            }
+                          ]
+                        },
+                        {
+                          "type": "Text",
+                          "text": "+${fourthChore.pointValue}",
+                          "style": "textStyleCaption",
+                          "fontWeight": "700",
+                          "color": "#FFE082",
+                          "textAlign": "right",
+                          "width": "44dp"
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "Text",
+              "text": "${chartData.lastMessage}",
+              "style": "textStyleCaption",
+              "color": "#BFD7FF",
+              "maxLines": 1
+            },
+            {
+              "type": "Container",
+              "direction": "row",
+              "spacing": "8dp",
+              "items": [
+                {
+                  "type": "TouchWrapper",
+                  "grow": 1,
+                  "onPress": [
+                    {
+                      "type": "SendEvent",
+                      "arguments": [
+                        "selectNextChild"
+                      ],
+                      "flags": {
+                        "interactionMode": "INLINE"
+                      }
+                    }
+                  ],
+                  "item": {
+                    "type": "Frame",
+                    "height": "42dp",
+                    "borderRadius": "12dp",
+                    "backgroundColor": "#394B78",
+                    "item": {
+                      "type": "Text",
+                      "width": "100%",
+                      "height": "100%",
+                      "text": "Next kid",
+                      "style": "textStyleButton",
+                      "fontSize": "15dp",
+                      "textAlign": "center",
+                      "textAlignVertical": "center",
+                      "color": "white"
+                    }
+                  }
+                },
+                {
+                  "type": "TouchWrapper",
+                  "grow": 1,
+                  "onPress": [
+                    {
+                      "type": "SendEvent",
+                      "arguments": [
+                        "awardBonus",
+                        "${selectedChild.childId}",
+                        "1",
+                        "Widget bonus"
+                      ],
+                      "flags": {
+                        "interactionMode": "INLINE"
+                      }
+                    }
+                  ],
+                  "item": {
+                    "type": "Frame",
+                    "height": "42dp",
+                    "borderRadius": "12dp",
+                    "backgroundColor": "#5E4B00",
+                    "item": {
+                      "type": "Text",
+                      "width": "100%",
+                      "height": "100%",
+                      "text": "Bonus +1",
+                      "style": "textStyleButton",
+                      "fontSize": "15dp",
+                      "textAlign": "center",
+                      "textAlignVertical": "center",
+                      "color": "white"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

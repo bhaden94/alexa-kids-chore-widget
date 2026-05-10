@@ -1,0 +1,67 @@
+{
+  "defaultData": {
+    "schemaVersion": 1,
+    "today": "2026-05-10",
+    "selectedChildId": "emma",
+    "lastMessage": "Tap a chore to earn points.",
+    "selectedChild": {
+      "childId": "emma",
+      "name": "Emma",
+      "emoji": "🌟",
+      "currentPoints": 12,
+      "lifetimePoints": 12,
+      "completedChores": 1,
+      "totalChores": 3,
+      "nextReward": {
+        "title": "Pick dessert",
+        "cost": 25,
+        "pointsToGo": 13
+      },
+      "chores": [
+        {
+          "choreId": "make-bed",
+          "title": "Make bed",
+          "emoji": "🛏️",
+          "pointValue": 10,
+          "dueLabel": "Due 8:30 AM",
+          "completed": true,
+          "overdue": false
+        },
+        {
+          "choreId": "brush-teeth",
+          "title": "Brush teeth",
+          "emoji": "🪥",
+          "pointValue": 5,
+          "dueLabel": "Due 8:00 PM",
+          "completed": false,
+          "overdue": false
+        },
+        {
+          "choreId": "feed-pet",
+          "title": "Feed pet",
+          "emoji": "🐾",
+          "pointValue": 15,
+          "dueLabel": "Any time",
+          "completed": false,
+          "overdue": false
+        }
+      ]
+    },
+    "childrenSummary": [
+      {
+        "childId": "emma",
+        "name": "Emma",
+        "currentPoints": 12,
+        "completedChores": 1,
+        "totalChores": 3
+      },
+      {
+        "childId": "jack",
+        "name": "Jack",
+        "currentPoints": 7,
+        "completedChores": 0,
+        "totalChores": 3
+      }
+    ]
+  }
+}

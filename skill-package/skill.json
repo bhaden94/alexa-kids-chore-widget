@@ -1,0 +1,96 @@
+{
+  "manifest": {
+    "manifestVersion": "1.0",
+    "publishingInformation": {
+      "locales": {
+        "en-US": {
+          "name": "Kids Chore Chart",
+          "summary": "Track kids chores, points, and rewards.",
+          "description": "A simple chore chart for multiple kids with points, bonus awards, and rewards.",
+          "examplePhrases": [
+            "Alexa, open kids chore chart",
+            "Alexa, ask kids chore chart for points",
+            "Alexa, tell kids chore chart to give Emma five points"
+          ],
+          "keywords": [
+            "chores",
+            "kids",
+            "rewards"
+          ]
+        }
+      },
+      "isAvailableWorldwide": true,
+      "testingInstructions": "Install the Kids Chore Chart widget on a supported Echo Show. Tap Next kid, Bonus +1, and chore rows to test inline Data Store updates.",
+      "category": "EDUCATION_AND_REFERENCE",
+      "distributionCountries": []
+    },
+    "privacyAndCompliance": {
+      "locales": {
+        "en-US": {}
+      }
+    },
+    "apis": {
+      "custom": {
+        "locales": {},
+        "interfaces": [
+          {
+            "type": "ALEXA_DATASTORE_PACKAGEMANAGER",
+            "packages": [
+              {
+                "id": "kids-chore-chart"
+              }
+            ]
+          },
+          {
+            "type": "ALEXA_DATA_STORE"
+          },
+          {
+            "type": "ALEXA_PRESENTATION_APL",
+            "supportedViewports": [
+              {
+                "mode": "HUB",
+                "shape": "RECTANGLE",
+                "minWidth": 960,
+                "maxWidth": 1279,
+                "minHeight": 600,
+                "maxHeight": 959
+              },
+              {
+                "mode": "HUB",
+                "shape": "RECTANGLE",
+                "minWidth": 1280,
+                "maxWidth": 1920,
+                "minHeight": 600,
+                "maxHeight": 1279
+              },
+              {
+                "mode": "HUB",
+                "shape": "RECTANGLE",
+                "minWidth": 960,
+                "maxWidth": 1279,
+                "minHeight": 100,
+                "maxHeight": 599
+              },
+              {
+                "mode": "HUB",
+                "shape": "RECTANGLE",
+                "minWidth": 1920,
+                "maxWidth": 2560,
+                "minHeight": 960,
+                "maxHeight": 1279
+              }
+            ]
+          },
+          {
+            "type": "ALEXA_EXTENSION",
+            "requestedExtensions": [
+              {
+                "uri": "alexaext:datastore:10"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}
