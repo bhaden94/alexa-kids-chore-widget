@@ -37,11 +37,11 @@
       },
       {
         "name": "chartData",
-        "value": "${widgetData || defaultData}"
+        "value": "${widgetData && widgetData.selectedChild ? widgetData : defaultData}"
       },
       {
         "name": "selectedChild",
-        "value": "${chartData.selectedChild}"
+        "value": "${chartData.selectedChild || defaultData.selectedChild}"
       },
       {
         "name": "firstChore",
