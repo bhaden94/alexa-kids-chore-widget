@@ -36,20 +36,46 @@ Prototype Alexa skill and widget for a multi-child chore chart with points and r
    - `Bonus +1`
    - tapping an incomplete chore row
 
-## Deployment scripts
+## Deployment
 
-- To upload Lambda code only in the Alexa Developer Console **Code > Import Code** flow, run `scripts/build-lambda-zip.ps1` and upload `dist/lambda-import.zip`.
-- For this Alexa-hosted skill, push the full project through the hosted Git repository. This deploys `lambda/`, `skill-package/`, and the widget package without changing the hosted endpoint setting:
+This project is managed as an Alexa-hosted skill through Git. Keep normal development on `main`. When changes are ready for the Alexa development stage, merge `main` into `master` and push `master`.
+
+Alexa-hosted branch behavior:
+
+- `main` — normal GitHub default branch for day-to-day development.
+- `master` — deployment branch. Pushing this branch is equivalent to clicking **Deploy** in the Alexa Developer Console Code tab.
+
+Deploy from a clean working tree:
 
    ```powershell
-   npm install -g ask-cli
-   ask configure --profile default
-   .\scripts\deploy-skill-package.ps1 -SkillId amzn1.ask.skill.YOUR-SKILL-ID -Profile default
+   git checkout main
+   git pull --ff-only origin main
+   git checkout master
+   git pull --ff-only origin master
+   git merge main
+   git push origin master
+   git checkout main
    ```
 
-The script uses the Alexa-hosted CodeCommit `master` branch by default when `-SkillId` points to a hosted skill. It keeps a temporary clone under `dist/alexa-hosted-deploy/`, commits the local `lambda/`, `skill-package/`, and `ask-resources.json`, then pushes to hosted `master`.
+If `master` does not exist yet, create it once from `main`:
 
-Do not use raw SMAPI skill-package import for this hosted skill unless you explicitly mean to replace the hosted endpoint configuration. Raw import can cause the Developer Console warning that the default endpoint changed.
+   ```powershell
+   git checkout main
+   git checkout -b master
+   git push -u origin master
+   git checkout main
+   ```
+
+Do not use raw SMAPI skill-package import for this hosted skill. Raw imports can replace the Alexa-hosted endpoint configuration and cause the Developer Console warning that the default endpoint changed.
+
+The remaining `scripts/build-lambda-zip.ps1` helper is only for the Developer Console **Code > Import Code** fallback flow. It is not the normal deployment path.
+
+## Copilot skills
+
+This repo includes project-scoped Copilot skills under `.github/skills/`:
+
+- `alexa-hosted-deploy` — branch-based deployment from `main` to `master`.
+- `alexa-skill-maintenance` — safe edits for the skill manifest, interaction model, widget package, hosted endpoint, and credentials guidance.
 
 ## Notes
 

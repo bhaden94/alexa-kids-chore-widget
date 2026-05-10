@@ -31,6 +31,9 @@
     },
     "apis": {
       "custom": {
+        "endpoint": {
+          "uri": "arn:aws:lambda:us-east-1:469174807916:function:0018dcbe-a1c5-4680-8dca-a51eecd906eb:Release_0"
+        },
         "locales": {},
         "interfaces": [
           {
@@ -89,7 +92,24 @@
               }
             ]
           }
-        ]
+        ],
+        "regions": {
+          "NA": {
+            "endpoint": {
+              "uri": "arn:aws:lambda:us-east-1:469174807916:function:0018dcbe-a1c5-4680-8dca-a51eecd906eb:Release_0"
+            }
+          },
+          "EU": {
+            "endpoint": {
+              "uri": "arn:aws:lambda:eu-west-1:469174807916:function:0018dcbe-a1c5-4680-8dca-a51eecd906eb:Release_0"
+            }
+          },
+          "FE": {
+            "endpoint": {
+              "uri": "arn:aws:lambda:us-west-2:469174807916:function:0018dcbe-a1c5-4680-8dca-a51eecd906eb:Release_0"
+            }
+          }
+        }
       }
     }
   }
